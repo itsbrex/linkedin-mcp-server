@@ -244,31 +244,36 @@ def ensure_authentication_ready() -> str:
 
 def initialize_driver_with_auth(authentication: str) -> None:
     """
-    Phase 2: Initialize driver using existing authentication.
+    Phase 2: Initialize driver/session using existing authentication.
 
     Args:
         authentication: LinkedIn session cookie
 
     Raises:
-        Various exceptions if driver creation or login fails
+        Various exceptions if driver/session creation or login fails
     """
     config = get_config()
 
     if config.server.lazy_init:
         logger.info(
-            "Using lazy initialization - driver will be created on first tool call"
+            "Using lazy initialization - session will be created on first tool call"
         )
         return
 
-    logger.info("Initializing Chrome WebDriver and logging in...")
+    logger.info("Initializing browser session and logging in...")
 
     try:
-        # Create driver and login with provided authentication
-        get_or_create_driver(authentication)
-        logger.info("✅ Web driver initialized and authenticated successfully")
+        if config.bridge.enabled:
+            logger.info("Bridge mode enabled - will attempt bridge connection on first tool call")
+            # For bridge mode, we'll defer initialization to the first tool call
+            # since the bridge client is async and we're in a sync context here
+        else:
+            # Create direct driver and login with provided authentication
+            get_or_create_driver(authentication)
+            logger.info("✅ Chrome WebDriver initialized and authenticated successfully")
 
     except Exception as e:
-        logger.error(f"Failed to initialize driver: {e}")
+        logger.error(f"Failed to initialize browser session: {e}")
         raise e
 
 
@@ -437,7 +442,23 @@ def exit_gracefully(exit_code: int = 0) -> None:
     """Exit the application gracefully, cleaning up resources."""
     print("👋 Shutting down LinkedIn MCP server...")
 
-    # Clean up drivers
+    # Clean up drivers and bridge sessions
+    try:
+        import asyncio
+        from linkedin_mcp_server.drivers.manager import close_all_sessions
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(close_all_sessions())
+            else:
+                asyncio.run(close_all_sessions())
+        except Exception as e:
+            logger.warning(f"Error closing bridge sessions during exit: {e}")
+    except ImportError:
+        pass
+
+    # Clean up remaining Chrome drivers
     close_all_drivers()
 
     # Clean up server

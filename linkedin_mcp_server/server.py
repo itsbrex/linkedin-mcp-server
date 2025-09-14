@@ -32,10 +32,16 @@ def create_mcp_server() -> FastMCP:
     @mcp.tool()
     async def close_session() -> Dict[str, Any]:
         """Close the current browser session and clean up resources."""
+        from linkedin_mcp_server.drivers.manager import close_all_sessions
         from linkedin_mcp_server.drivers.chrome import close_all_drivers
 
         try:
+            # Close bridge sessions and session manager
+            await close_all_sessions()
+            
+            # Also close any remaining direct Chrome drivers for backward compatibility
             close_all_drivers()
+            
             return {
                 "status": "success",
                 "message": "Successfully closed the browser session and cleaned up resources",
@@ -51,6 +57,21 @@ def create_mcp_server() -> FastMCP:
 
 def shutdown_handler() -> None:
     """Clean up resources on shutdown."""
+    import asyncio
+    from linkedin_mcp_server.drivers.manager import close_all_sessions
     from linkedin_mcp_server.drivers.chrome import close_all_drivers
 
+    # Close bridge sessions and session manager
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is running, schedule the cleanup
+            loop.create_task(close_all_sessions())
+        else:
+            # If no loop is running, run the cleanup synchronously
+            asyncio.run(close_all_sessions())
+    except Exception as e:
+        logger.warning(f"Error closing bridge sessions during shutdown: {e}")
+
+    # Also close any remaining direct Chrome drivers for backward compatibility
     close_all_drivers()

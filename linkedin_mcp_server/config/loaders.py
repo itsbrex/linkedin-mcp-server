@@ -53,6 +53,13 @@ class EnvironmentKeys:
     LAZY_INIT = "LAZY_INIT"
     TRANSPORT = "TRANSPORT"
 
+    # Bridge configuration
+    BRIDGE_ENABLED = "BRIDGE_ENABLED"
+    BRIDGE_URL = "BRIDGE_URL"
+    BRIDGE_TIMEOUT = "BRIDGE_TIMEOUT"
+    BRIDGE_PROFILE_NAME = "BRIDGE_PROFILE_NAME"
+    BRIDGE_FALLBACK = "BRIDGE_FALLBACK"
+
 
 def find_chromedriver() -> Optional[str]:
     """Find the ChromeDriver executable in common locations."""
@@ -150,6 +157,29 @@ def load_from_env(config: AppConfig) -> AppConfig:
         elif transport_env == "streamable-http":
             config.server.transport = "streamable-http"
 
+    # Bridge configuration
+    if os.environ.get(EnvironmentKeys.BRIDGE_ENABLED) in TRUTHY_VALUES:
+        config.bridge.enabled = True
+    elif os.environ.get(EnvironmentKeys.BRIDGE_ENABLED) in FALSY_VALUES:
+        config.bridge.enabled = False
+
+    if bridge_url := os.environ.get(EnvironmentKeys.BRIDGE_URL):
+        config.bridge.url = bridge_url
+
+    if bridge_timeout := os.environ.get(EnvironmentKeys.BRIDGE_TIMEOUT):
+        try:
+            config.bridge.timeout = int(bridge_timeout)
+        except ValueError:
+            logger.warning(f"Invalid bridge timeout value: {bridge_timeout}")
+
+    if bridge_profile := os.environ.get(EnvironmentKeys.BRIDGE_PROFILE_NAME):
+        config.bridge.profile_name = bridge_profile
+
+    if os.environ.get(EnvironmentKeys.BRIDGE_FALLBACK) in TRUTHY_VALUES:
+        config.bridge.fallback_to_selenium = True
+    elif os.environ.get(EnvironmentKeys.BRIDGE_FALLBACK) in FALSY_VALUES:
+        config.bridge.fallback_to_selenium = False
+
     return config
 
 
@@ -235,6 +265,40 @@ def load_from_args(config: AppConfig) -> AppConfig:
         help="Specify custom user agent string to prevent anti-scraping detection",
     )
 
+    # Bridge configuration arguments
+    parser.add_argument(
+        "--bridge",
+        action="store_true",
+        help="Enable Chrome Bridge mode for session reuse",
+    )
+
+    parser.add_argument(
+        "--bridge-url",
+        type=str,
+        default=None,
+        help="Chrome Bridge server URL (default: http://localhost:3000)",
+    )
+
+    parser.add_argument(
+        "--bridge-timeout",
+        type=int,
+        default=None,
+        help="Bridge connection timeout in seconds (default: 30)",
+    )
+
+    parser.add_argument(
+        "--bridge-profile",
+        type=str,
+        default=None,
+        help="Chrome profile name for bridge sessions (default: linkedin)",
+    )
+
+    parser.add_argument(
+        "--no-bridge-fallback",
+        action="store_true",
+        help="Disable fallback to Selenium when bridge is unavailable",
+    )
+
     args = parser.parse_args()
 
     # Update configuration with parsed arguments
@@ -273,6 +337,22 @@ def load_from_args(config: AppConfig) -> AppConfig:
 
     if args.user_agent:
         config.chrome.user_agent = args.user_agent
+
+    # Bridge configuration
+    if args.bridge:
+        config.bridge.enabled = True
+
+    if args.bridge_url:
+        config.bridge.url = args.bridge_url
+
+    if args.bridge_timeout:
+        config.bridge.timeout = args.bridge_timeout
+
+    if args.bridge_profile:
+        config.bridge.profile_name = args.bridge_profile
+
+    if args.no_bridge_fallback:
+        config.bridge.fallback_to_selenium = False
 
     return config
 

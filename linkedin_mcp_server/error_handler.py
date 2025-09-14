@@ -178,3 +178,68 @@ def safe_get_driver():
     driver = get_or_create_driver(authentication)
 
     return driver
+
+
+async def safe_get_browser_session():
+    """
+    Safely get or create a browser session (bridge or direct WebDriver) with proper error handling.
+
+    Returns:
+        BrowserSession instance
+
+    Raises:
+        LinkedInMCPError: If session initialization fails
+    """
+    from linkedin_mcp_server.authentication import ensure_authentication
+    from linkedin_mcp_server.drivers.manager import get_browser_session
+
+    # Get authentication first
+    authentication = ensure_authentication()
+
+    # Create browser session with authentication (bridge or fallback)
+    session = await get_browser_session(authentication)
+
+    return session
+
+
+async def safe_get_session_or_driver():
+    """
+    Safely get either a browser session (bridge) or WebDriver (direct) with proper error handling.
+    
+    This function provides compatibility between bridge and direct WebDriver modes.
+    
+    Returns:
+        Union[BrowserSession, webdriver.Chrome]: Either a bridge session or WebDriver instance
+        
+    Raises:
+        LinkedInMCPError: If session/driver initialization fails
+    """
+    from linkedin_mcp_server.config import get_config
+    from linkedin_mcp_server.authentication import ensure_authentication
+    from linkedin_mcp_server.drivers.manager import get_browser_session, get_current_browser_session
+    
+    config = get_config()
+    
+    # Check if we have a current bridge session
+    current_session = get_current_browser_session()
+    if current_session:
+        return current_session
+    
+    # Get authentication first
+    authentication = ensure_authentication()
+    
+    if config.bridge.enabled:
+        # Try to get bridge session
+        try:
+            session = await get_browser_session(authentication)
+            return session
+        except Exception as e:
+            logger.warning(f"Failed to get bridge session: {e}")
+            if not config.bridge.fallback_to_selenium:
+                raise
+            # Fall through to WebDriver fallback
+    
+    # Fallback to direct WebDriver
+    from linkedin_mcp_server.drivers.chrome import get_or_create_driver
+    driver = get_or_create_driver(authentication)
+    return driver

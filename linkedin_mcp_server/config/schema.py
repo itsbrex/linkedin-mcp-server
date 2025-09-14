@@ -44,6 +44,17 @@ class LinkedInConfig:
 
 
 @dataclass
+class BridgeConfig:
+    """Chrome Bridge configuration."""
+    
+    enabled: bool = False
+    url: str = "http://localhost:3000"
+    timeout: int = 30
+    profile_name: str = "linkedin"
+    fallback_to_selenium: bool = True
+
+
+@dataclass
 class ServerConfig:
     """MCP server configuration."""
 
@@ -66,6 +77,7 @@ class AppConfig:
     chrome: ChromeConfig = field(default_factory=ChromeConfig)
     linkedin: LinkedInConfig = field(default_factory=LinkedInConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
+    bridge: BridgeConfig = field(default_factory=BridgeConfig)
     is_interactive: bool = field(default=False)
 
     def __post_init__(self) -> None:
