@@ -117,7 +117,11 @@ _FEED_PATH_RE = re.compile(r"^/feed/update/([^/?#]+)")
 _MESSAGING_THREAD_PATH_RE = re.compile(r"^/messaging/thread/([^/?#]+)")
 _MAX_REDIRECT_UNWRAP_DEPTH = 5
 
-_FIRST_URN_RE = re.compile(r'\["(\d+)"')
+# Accept both quoted-string and bare-integer JSON list elements, e.g.
+# ``["1115","2573558"]`` (the form LinkedIn currently emits — verified live)
+# and ``[1115,2573558]`` (also valid JSON). Optional surrounding quote keeps
+# the matcher resilient if LinkedIn ever drops the string-typing.
+_FIRST_URN_RE = re.compile(r'\[\s*"?(\d+)"?')
 
 
 def _first_company_urn_from_query(query: str) -> str | None:
@@ -188,6 +192,11 @@ def normalize_reference(
         "url": normalized_url,
     }
     if kind == "company_urn":
+        # ``classify_link`` already extracted the urn while building the
+        # canonical url. Re-parsing here keeps that classifier internal —
+        # callers of ``normalize_reference`` shouldn't have to know the
+        # url shape — and is cheap (the canonical url has a fixed
+        # single-id form, so ``parse_qs`` is O(1) here).
         urn_id = _first_company_urn_from_query(urlparse(normalized_url).query)
         if urn_id:
             reference["value"] = urn_id

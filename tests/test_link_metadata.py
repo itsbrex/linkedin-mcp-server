@@ -589,6 +589,24 @@ class TestBuildReferences:
         assert references[0]["value"] == "1115"
         assert "text" not in references[0]
 
+    def test_company_urn_accepts_unquoted_json_integers(self):
+        """Defensive: LinkedIn currently serialises ids as quoted strings,
+        but plain JSON integers are also valid and should still classify."""
+        references = build_references(
+            [
+                {
+                    "href": "https://www.linkedin.com/search/results/people/"
+                    "?currentCompany=%5B1115%5D",
+                    "text": "10K+ employees",
+                }
+            ],
+            "about",
+        )
+
+        assert len(references) == 1
+        assert references[0]["kind"] == "company_urn"
+        assert references[0]["value"] == "1115"
+
     def test_company_urn_lowercase_percent_escapes(self):
         """``parse_qs`` decodes percent-escapes regardless of case, so
         lowercase variants must still classify and extract the same id."""
