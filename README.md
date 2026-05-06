@@ -35,7 +35,7 @@ Through this LinkedIn MCP server, AI assistants like Claude can connect to your 
 | `get_conversation` | Read a specific messaging conversation by username or thread ID | working |
 | `search_conversations` | Search messages by keyword | working |
 | `send_message` | Send a message to a LinkedIn user (requires confirmation) | working |
-| `get_company_profile` | Extract company information with explicit section selection (posts, jobs) | working |
+| `get_company_profile` | Extract company information with explicit section selection (posts, jobs); about-section references may include a `company_urn` entry carrying the numeric id used by LinkedIn's people-search `currentCompany` URL facet | working |
 | `get_company_posts` | Get recent posts from a company's LinkedIn feed | working |
 | `search_jobs` | Search for jobs with keywords and location filters | working |
 | `search_people` | Search for people by keywords and location | working |

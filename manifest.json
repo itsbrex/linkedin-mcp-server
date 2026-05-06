@@ -59,7 +59,7 @@
     },
     {
       "name": "get_company_profile",
-      "description": "Extract comprehensive company information and details"
+      "description": "Extract comprehensive company information and details. About-section references may include a company_urn entry carrying the numeric id LinkedIn's people-search uses in its currentCompany URL facet."
     },
     {
       "name": "get_company_posts",
