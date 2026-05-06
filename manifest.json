@@ -59,7 +59,7 @@
     },
     {
       "name": "get_company_profile",
-      "description": "Extract comprehensive company information and details"
+      "description": "Extract comprehensive company information and details. References include a company_urn entry usable as the search_people current_company filter value."
     },
     {
       "name": "get_company_posts",

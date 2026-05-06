@@ -27,7 +27,7 @@ All scraping tools return: `{url, sections: {name: raw_text}}`.
 
 Optional additional keys:
 
-- `references: {section_name: [{kind, url, text?, context?}]}` — LinkedIn URLs are relative paths
+- `references: {section_name: [{kind, url, text?, context?, value?}]}` — LinkedIn URLs are relative paths; `value` carries non-URL identifiers (e.g. company URN id for `kind: "company_urn"`)
 - `section_errors: {section_name: {error_type, error_message, issue_template_path, runtime, ...}}`
 - `unknown_sections: [name, ...]`
 - `job_ids: [id, ...]` (search_jobs only)

@@ -1607,6 +1607,70 @@ class TestScrapeCompany:
         assert "about" not in result["sections"]
         assert result["sections"]["posts"] == "Posts text"
 
+    async def test_scrape_company_extracts_company_urn(self, mock_page):
+        """End-to-end: a canned-search anchor on the company about page
+        produces a ``company_urn`` reference with the parent-company id.
+
+        Stubs ``_extract_root_content`` (rather than ``extract_page``) so
+        the real ``build_references`` pipeline runs against raw anchor
+        data, mirroring what the JS crawler emits live.
+        """
+        extractor = LinkedInExtractor(mock_page)
+        raw_root = {
+            "source": "root",
+            "text": "About SAP\nCompany overview",
+            "references": [
+                {
+                    "href": "https://www.linkedin.com/search/results/people/"
+                    "?currentCompany=%5B%221115%22%5D"
+                    "&origin=COMPANY_PAGE_CANNED_SEARCH",
+                    "text": "10K+ employees",
+                    "aria_label": "",
+                    "title": "",
+                    "heading": "",
+                    "in_article": False,
+                    "in_nav": False,
+                    "in_footer": False,
+                }
+            ],
+        }
+        with (
+            patch.object(
+                extractor,
+                "_extract_root_content",
+                new_callable=AsyncMock,
+                return_value=raw_root,
+            ),
+            patch(
+                "linkedin_mcp_server.scraping.extractor.scroll_to_bottom",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "linkedin_mcp_server.scraping.extractor.detect_rate_limit",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "linkedin_mcp_server.scraping.extractor.handle_modal_close",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "linkedin_mcp_server.scraping.extractor.asyncio.sleep",
+                new_callable=AsyncMock,
+            ),
+        ):
+            result = await extractor.scrape_company("sap", {"about"})
+
+        urns = [
+            ref for ref in result["references"]["about"] if ref["kind"] == "company_urn"
+        ]
+        assert len(urns) == 1
+        assert urns[0]["value"] == "1115"
+        assert urns[0]["url"] == (
+            "/search/results/people/?currentCompany=%5B%221115%22%5D"
+        )
+        assert "text" not in urns[0]
+
 
 class TestScrapeJob:
     async def test_scrape_job(self, mock_page):

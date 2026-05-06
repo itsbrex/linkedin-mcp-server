@@ -56,6 +56,11 @@ def register_company_tools(
             Dict with url, sections (name -> raw text), and optional references.
             Includes unknown_sections list when unrecognised names are passed.
             The LLM should parse the raw text in each section.
+
+            When the about section is included, references["about"] contains
+            a {kind: "company_urn", value: "<numeric-id>"} entry. Pass that
+            value to search_people's current_company parameter; LinkedIn
+            silently ignores plain-text company names.
         """
         try:
             extractor = extractor or await get_ready_extractor(
